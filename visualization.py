@@ -25,3 +25,21 @@ def overlay_points_on_image(image, pts_2d, depths, vmax):
         cv2.circle(out, (int(np.round(x)), int(np.round(y))), 2,
                    color=tuple(int(c) for c in color), thickness=-1)
     return out
+
+def points_in_boxes_mask(pts_2d, boxes, shrink_factor=0.2):
+    """Mask over pts_2d, True where the point falls inside any box (x1, y1, x2, y2)."""
+    mask = np.zeros(len(pts_2d), dtype=bool)
+    for x1, y1, x2, y2 in boxes:
+        if shrink_factor:
+            cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+            half_w = (x2 - x1) / 2 * (1 - shrink_factor)
+            half_h = (y2 - y1) / 2 * (1 - shrink_factor)
+            x1, x2 = cx - half_w, cx + half_w
+            y1, y2 = cy - half_h, cy + half_h
+        mask |= (pts_2d[:, 0] > x1) & (pts_2d[:, 0] < x2) & (pts_2d[:, 1] > y1) & (pts_2d[:, 1] < y2)
+    return mask
+
+def overlay_points_in_boxes_on_image(image, pts_2d, depths, boxes, vmax, shrink_factor=0.2):
+    """overlay_points_on_image(), restricted to points inside one of boxes."""
+    mask = points_in_boxes_mask(pts_2d, boxes, shrink_factor)
+    return overlay_points_on_image(image, pts_2d[mask], depths[mask], vmax)
