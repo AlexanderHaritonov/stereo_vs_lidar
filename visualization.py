@@ -49,5 +49,5 @@ def draw_boxes_with_labels(image, boxes, texts, color=(255, 40, 30)):
     out = image.copy()
     for (x1, y1, x2, y2), text in zip(boxes, texts):
         cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
-        cv2.putText(out, text, (x1, y1 - 4), cv2.FONT_HERSHEY_PLAIN, 0.9, color, 1)
+        cv2.putText(out, text, (x1, y1 - 4), cv2.FONT_HERSHEY_PLAIN, 1.3, color, 2)
     return out
