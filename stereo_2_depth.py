@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 def create_stereo_matcher():
     """StereoSGBM matcher; parameters resemble the "good calibration" setup
@@ -17,3 +18,51 @@ def create_stereo_matcher():
         preFilterCap=40,
         mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY,
     )
+
+def compute_disparity_map(left, right):
+    stereo = create_stereo_matcher()
+    disparity_map = stereo.compute(left, right).astype(np.float32) / 16.0
+    return disparity_map
+
+def compute_depth_map(disparity_map, fx, baseline):
+    depth_map = np.zeros(disparity_map.shape, dtype=np.float32)
+    valid = disparity_map > 0
+    depth_map[valid] = (fx * baseline) / disparity_map[valid]
+    return depth_map
+
+def get_depth_and_disparity(left, right, fx, baseline):
+    left_gray = cv2.cvtColor(left, cv2.COLOR_RGB2GRAY)
+    right_gray = cv2.cvtColor(right, cv2.COLOR_RGB2GRAY)
+
+    disparity_map = compute_disparity_map(left_gray, right_gray)
+    depth_map = compute_depth_map(disparity_map, fx, baseline)
+
+    return depth_map, disparity_map
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    from data_loading import DataLoader
+
+    dl = DataLoader("../kitty_data/drive1/2011_09_26_drive_0001_sync")
+    left, right = dl.load_stereo_pair(0)
+    depth_map, disparity_map = get_depth_and_disparity(left, right, dl.fx, dl.baseline)
+
+    fig, axes = plt.subplots(3, 1, figsize=(14, 12))
+    axes[0].imshow(left)
+    axes[0].set_title("Left image")
+    axes[0].axis("off")
+
+    im1 = axes[1].imshow(disparity_map, cmap="plasma")
+    axes[1].set_title("Disparity map")
+    axes[1].axis("off")
+    fig.colorbar(im1, ax=axes[1], label="disparity (px)")
+
+    depth_vis = depth_map.copy()
+    depth_vis[depth_vis == 0] = None  # invalid -> blank
+    im2 = axes[2].imshow(depth_vis, cmap="viridis_r", vmax=80)
+    axes[2].set_title("Depth map (m)")
+    axes[2].axis("off")
+    fig.colorbar(im2, ax=axes[2], label="depth (m)")
+
+    plt.tight_layout()
+    plt.show()
