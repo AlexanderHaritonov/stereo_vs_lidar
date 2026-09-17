@@ -42,6 +42,7 @@ def get_depth_and_disparity(left, right, fx, baseline):
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     from data_loading import DataLoader
+    from visualization import depth_to_color
 
     dl = DataLoader("../kitty_data/drive1/2011_09_26_drive_0001_sync")
     left, right = dl.load_stereo_pair(0)
@@ -57,12 +58,9 @@ if __name__ == "__main__":
     axes[1].axis("off")
     fig.colorbar(im1, ax=axes[1], label="disparity (px)")
 
-    depth_vis = depth_map.copy()
-    depth_vis[depth_vis == 0] = None  # invalid -> blank
-    im2 = axes[2].imshow(depth_vis, cmap="viridis_r", vmax=80)
-    axes[2].set_title("Depth map (m)")
+    axes[2].imshow(depth_to_color(depth_map, vmax=80))
+    axes[2].set_title("Depth map (m, colorized 0-80m)")
     axes[2].axis("off")
-    fig.colorbar(im2, ax=axes[2], label="depth (m)")
 
     plt.tight_layout()
     plt.show()

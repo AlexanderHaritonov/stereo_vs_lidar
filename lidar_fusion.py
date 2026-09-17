@@ -103,13 +103,14 @@ if __name__ == "__main__":
 
     # Sanity-check visualization: (colored by cam_depths)
     import matplotlib.pyplot as plt
+    from visualization import overlay_points_on_image
+
+    overlay = overlay_points_on_image(left, pts_2d_fov[:, :2], cam_depths, vmax=80)
 
     fig, ax = plt.subplots(figsize=(14, 5))
-    ax.imshow(left)
-    sc = ax.scatter(pts_2d_fov[:, 0], pts_2d_fov[:, 1], c=cam_depths, cmap="viridis_r", vmax=80, s=4)
-    ax.set_title("LiDAR points projected onto left image (camera-frame depth)")
+    ax.imshow(overlay)
+    ax.set_title("LiDAR points projected onto left image (camera-frame depth, colorized 0-80m)")
     ax.axis("off")
-    fig.colorbar(sc, ax=ax, label="depth (m)")
     plt.tight_layout()
     plt.show()
 
