@@ -3,26 +3,29 @@ import os
 import cv2
 import numpy as np
 
-def get_fx_and_baseline(cam_to_cam_calib_file):
-    """Focal length (fx) and stereo baseline (m) for the image_02/image_03 pair."""
-    calib = read_calib_file(cam_to_cam_calib_file)
-    P_rect_02 = calib["P_rect_02"].reshape(3, 4)
-    P_rect_03 = calib["P_rect_03"].reshape(3, 4)
-    fx = P_rect_02[0, 0]
-    baseline = (P_rect_02[0, 3] - P_rect_03[0, 3]) / fx
-    return fx, baseline
+class DataLoader:
+    """Loads calib and stereo image pairs from a KITTI sync folder."""
 
-def get_fx_and_baseline_from_root(root_folder):
-    """Same as get_fx_and_baseline, but takes the sync folder and locates the sibling calib/calib_cam_to_cam.txt file."""
-    cam_to_cam_calib_file = os.path.join(os.path.dirname(root_folder), "calib", "calib_cam_to_cam.txt")
-    return get_fx_and_baseline(cam_to_cam_calib_file)
+    def __init__(self, root_folder):
+        self.root_folder = root_folder
+        self.fx, self.baseline = self._get_fx_and_baseline()
 
-def load_stereo_pair(root_folder, frame_number):
-    """Load the matching left (image_02) / right (image_03) frame from a KITTI sync folder."""
-    filename = f"{frame_number:010d}.png"
-    left_path = os.path.join(root_folder, "image_02", "data", filename)
-    right_path = os.path.join(root_folder, "image_03", "data", filename)
-    return load_image(left_path), load_image(right_path)
+    def _get_fx_and_baseline(self):
+        """Focal length (fx) and stereo baseline (m) for the image_02/image_03 pair."""
+        cam_to_cam_calib_file = os.path.join(os.path.dirname(self.root_folder), "calib", "calib_cam_to_cam.txt")
+        calib = read_calib_file(cam_to_cam_calib_file)
+        P_rect_02 = calib["P_rect_02"].reshape(3, 4)
+        P_rect_03 = calib["P_rect_03"].reshape(3, 4)
+        fx = P_rect_02[0, 0]
+        baseline = (P_rect_02[0, 3] - P_rect_03[0, 3]) / fx
+        return fx, baseline
+
+    def load_stereo_pair(self, frame_number):
+        """Load the matching left (image_02) / right (image_03) frame from the sync folder."""
+        filename = f"{frame_number:010d}.png"
+        left_path = os.path.join(self.root_folder, "image_02", "data", filename)
+        right_path = os.path.join(self.root_folder, "image_03", "data", filename)
+        return load_image(left_path), load_image(right_path)
 
 def load_image(path):
     """Read an image file and return it as an RGB numpy array (H, W, 3)."""
