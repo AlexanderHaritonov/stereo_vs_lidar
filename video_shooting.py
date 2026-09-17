@@ -10,7 +10,14 @@ from comparison import compare_depth_maps, compare_depth_maps_in_box, format_box
 from visualization import depth_to_color, overlay_points_in_boxes_on_image, draw_boxes_with_labels
 
 def _count_frames(root_folder):
-    return len(os.listdir(os.path.join(root_folder, "image_02", "data")))
+    """Upper bound for the frame loop: the highest frame index present in any of image_02/image_03/velodyne_points."""
+    max_index = -1
+    for subdir, ext in (("image_02", ".png"), ("image_03", ".png"), ("velodyne_points", ".bin")):
+        data_dir = os.path.join(root_folder, subdir, "data")
+        for f in os.listdir(data_dir):
+            if f.endswith(ext):
+                max_index = max(max_index, int(f[:10]))
+    return max_index + 1
 
 def _build_frame(dl, model, frame_number, vmax):
     left, right = dl.load_stereo_pair(frame_number)
@@ -49,7 +56,10 @@ def make_comparison_video(root_folder, output_dir="output", fps=10, vmax=80):
     result_video = []
     for idx in range(frames_cnt):
         print(idx + 1, "of", frames_cnt)
-        result_video.append(_build_frame(dl, model, idx, vmax))
+        try:
+            result_video.append(_build_frame(dl, model, idx, vmax))
+        except (FileNotFoundError, cv2.error):
+            print(f"skipping frame {idx}: missing image or lidar file")
 
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, os.path.basename(root_folder.rstrip("/")) + ".mp4")
@@ -65,5 +75,5 @@ def make_comparison_video(root_folder, output_dir="output", fps=10, vmax=80):
     return output_path
 
 if __name__ == "__main__":
-    output_path = make_comparison_video("../kitty_data/drive1/2011_09_26_drive_0001_sync")
+    output_path = make_comparison_video("../kitty_data/drive14/2011_09_26_drive_0014_sync")
     print(f"wrote {output_path}")
