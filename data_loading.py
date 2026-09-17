@@ -9,6 +9,32 @@ class DataLoader:
     def __init__(self, root_folder):
         self.root_folder = root_folder
         self.fx, self.baseline = self._get_fx_and_baseline()
+        self._get_lidar_calib()
+
+    def _get_lidar_calib(self):
+        """P (cam2 projection),
+           R0 (rectifying rotation),
+           V2C (velodyne -> cam0 transform).
+
+        Adapted from LiDAR2Camera.__init__ in AH_Week_7_Visual_Fusion.ipynb, which reads a
+        single combined calib file (P2 / R0_rect / Tr_velo_to_cam)
+        -- KITTI raw splits these across calib_cam_to_cam.txt and calib_velo_to_cam.txt instead."""
+        
+        calib_dir = os.path.join(os.path.dirname(self.root_folder), "calib")
+        cam_to_cam = read_calib_file(os.path.join(calib_dir, "calib_cam_to_cam.txt"))
+        velo_to_cam = read_calib_file(os.path.join(calib_dir, "calib_velo_to_cam.txt"))
+
+        P = cam_to_cam["P_rect_02"]
+        self.P = np.reshape(P, (3, 4))
+
+        # Rotation from reference camera (cam0) coord to rect camera coord
+        R0 = cam_to_cam["R_rect_00"]
+        self.R0 = np.reshape(R0, (3, 3))
+
+        # Rigid transform from Velodyne coord to reference camera coord
+        R = velo_to_cam["R"].reshape(3, 3)
+        T = velo_to_cam["T"].reshape(3, 1)
+        self.V2C = np.hstack((R, T))
 
     def _get_fx_and_baseline(self):
         """Focal length (fx) and stereo baseline (m) for the image_02/image_03 pair."""
@@ -26,6 +52,12 @@ class DataLoader:
         left_path = os.path.join(self.root_folder, "image_02", "data", filename)
         right_path = os.path.join(self.root_folder, "image_03", "data", filename)
         return load_image(left_path), load_image(right_path)
+
+    def load_point_cloud(self, frame_number):
+        """Load a KITTI velodyne .bin scan (x, y, z, reflectance per point) as an Nx3 array."""
+        filename = f"{frame_number:010d}.bin"
+        path = os.path.join(self.root_folder, "velodyne_points", "data", filename)
+        return np.fromfile(path, dtype=np.float32).reshape(-1, 4)[:, :3]
 
 def load_image(path):
     """Read an image file and return it as an RGB numpy array (H, W, 3)."""
