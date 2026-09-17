@@ -6,7 +6,7 @@ from data_loading import DataLoader
 from stereo_2_depth import get_depth_and_disparity
 from lidar_fusion import get_lidar_depth_and_maps
 from detection import load_model, run_obstacle_detection
-from comparison import compare_depth_maps_in_box, format_box_label
+from comparison import compare_depth_maps, compare_depth_maps_in_box, format_box_label
 from visualization import depth_to_color, overlay_points_in_boxes_on_image, draw_boxes_with_labels
 
 def _count_frames(root_folder):
@@ -25,6 +25,11 @@ def _build_frame(dl, model, frame_number, vmax):
 
     camera_panel = overlay_points_in_boxes_on_image(left, pts_2d_fov[:, :2], cam_depths, boxes, vmax)
     camera_panel = draw_boxes_with_labels(camera_panel, boxes, texts)
+
+    mae, rmse, _ = compare_depth_maps(stereo_depth_map, lidar_depth_map)
+    cv2.putText(camera_panel, f"MAE: {mae:.2f}m", (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.5, (255, 40, 30), 2)
+    cv2.putText(camera_panel, f"RMSE: {rmse:.2f}m", (10, 55), cv2.FONT_HERSHEY_PLAIN, 1.5, (255, 40, 30), 2)
+
     stereo_panel = depth_to_color(stereo_depth_map, vmax)
     lidar_panel = depth_to_color(lidar_depth_map, vmax)
 
