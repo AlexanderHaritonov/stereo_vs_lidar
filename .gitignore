@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .venv/
-output/
+output/*
+!output/preview.mp4
+!output/preview.gif
 data/
 *.pt

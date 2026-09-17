@@ -11,3 +11,9 @@ wget https://stereo-vision.s3.eu-west-3.amazonaws.com/yolo11n.pt
 ```
 
 Run both from inside this folder (`stereo_vs_lidar/`) -- `detection.py` loads the model via the relative path `yolo11n.pt`.
+
+## Demo
+
+![demo](output/preview.gif)
+
+[Full video](output/preview.mp4)
