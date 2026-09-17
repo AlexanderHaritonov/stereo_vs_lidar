@@ -43,3 +43,11 @@ def overlay_points_in_boxes_on_image(image, pts_2d, depths, boxes, vmax, shrink_
     """overlay_points_on_image(), restricted to points inside one of boxes."""
     mask = points_in_boxes_mask(pts_2d, boxes, shrink_factor)
     return overlay_points_on_image(image, pts_2d[mask], depths[mask], vmax)
+
+def draw_boxes_with_labels(image, boxes, texts, color=(255, 40, 30)):
+    """Rectangle + label above it, for each box."""
+    out = image.copy()
+    for (x1, y1, x2, y2), text in zip(boxes, texts):
+        cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
+        cv2.putText(out, text, (x1, y1 - 4), cv2.FONT_HERSHEY_PLAIN, 0.9, color, 1)
+    return out
