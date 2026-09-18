@@ -39,7 +39,7 @@ def format_box_label(stats):
     if stats is None:
         return "no lidar data"
     mono = f"{stats['mono_nearest']:.1f}" if stats["mono_nearest"] is not None else "n/a"
-    return f"{stats['nearest']:.1f} / {mono} / {stats['lidar_nearest']:.1f}m"
+    return f"{mono} / {stats['nearest']:.1f} / {stats['lidar_nearest']:.1f}m"
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     from lidar_fusion import get_lidar_depth_and_maps
     from mono_depth import load_mono_depth_model, get_mono_depth
     from detection import load_model, run_obstacle_detection
-    from visualization import overlay_points_in_boxes_on_image, draw_boxes_with_labels
+    from visualization import overlay_points_in_boxes_on_image, draw_boxes_with_labels, draw_metrics_table, draw_legend
 
     dl = DataLoader("../kitty_data/drive1/2011_09_26_drive_0001_sync")
     left, right = dl.load_stereo_pair(0)
@@ -82,6 +82,8 @@ if __name__ == "__main__":
 
     vis = overlay_points_in_boxes_on_image(left, pts_2d_fov[:, :2], cam_depths, boxes, vmax=80)
     vis = draw_boxes_with_labels(vis, boxes, texts)
+    vis = draw_metrics_table(vis, mae, rmse, mono_mae, mono_rmse)
+    vis = draw_legend(vis, "mono / stereo / lidar")
 
     plt.figure(figsize=(14, 5))
     plt.imshow(vis)

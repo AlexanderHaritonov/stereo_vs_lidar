@@ -10,7 +10,7 @@ from lidar_fusion import get_lidar_depth_and_maps
 from mono_depth import load_mono_depth_model, get_mono_depth
 from detection import load_model, run_obstacle_detection
 from comparison import compare_depth_maps, compare_depth_maps_in_box, format_box_label
-from visualization import depth_to_color, overlay_points_in_boxes_on_image, draw_boxes_with_labels
+from visualization import depth_to_color, overlay_points_in_boxes_on_image, draw_boxes_with_labels, draw_metrics_table, draw_legend
 
 @contextmanager
 def timed(label):
@@ -49,8 +49,9 @@ def _build_frame(dl, model, mono_model, frame_number, vmax):
     camera_panel = draw_boxes_with_labels(camera_panel, boxes, texts)
 
     mae, rmse, _ = compare_depth_maps(stereo_depth_map, lidar_depth_map)
-    cv2.putText(camera_panel, f"MAE: {mae:.2f}m", (10, 25), cv2.FONT_HERSHEY_PLAIN, 1.5, (255, 40, 30), 2)
-    cv2.putText(camera_panel, f"RMSE: {rmse:.2f}m", (10, 55), cv2.FONT_HERSHEY_PLAIN, 1.5, (255, 40, 30), 2)
+    mono_mae, mono_rmse, _ = compare_depth_maps(mono_depth_map, lidar_depth_map)
+    camera_panel = draw_metrics_table(camera_panel, mae, rmse, mono_mae, mono_rmse)
+    camera_panel = draw_legend(camera_panel, "mono / stereo / lidar")
 
     stereo_panel = depth_to_color(stereo_depth_map, vmax)
     lidar_panel = depth_to_color(lidar_depth_map, vmax)
@@ -94,5 +95,5 @@ def make_comparison_video(root_folder, output_dir="output", fps=10, vmax=80):
     return output_path
 
 if __name__ == "__main__":
-    output_path = make_comparison_video("../kitty_data/drive14/2011_09_26_drive_0014_sync")
+    output_path = make_comparison_video("../kitty_data/drive1/2011_09_26_drive_0001_sync")
     print(f"wrote {output_path}")
