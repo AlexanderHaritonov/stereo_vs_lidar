@@ -12,12 +12,13 @@ def compare_depth_maps(depth_map, lidar_depth_map):
     rmse = np.sqrt((diff ** 2).mean())
     return mae, rmse, n
 
-def compare_depth_maps_in_box(depth_map, lidar_depth_map, box):
+def compare_depth_maps_in_box(depth_map, mono_depth_map, lidar_depth_map, box):
     """compare_depth_maps() restricted to a pixel box (x1, y1, x2, y2),
-    plus the per-map nearest distance for the label.
-    Returns None when the box has no pixel with both readings."""
+    plus the per-source nearest distance for the label.
+    Returns None when the box has no pixel with both depth_map and lidar readings."""
     x1, y1, x2, y2 = box
     crop = depth_map[y1:y2, x1:x2]
+    mono_crop = mono_depth_map[y1:y2, x1:x2]
     lidar_crop = lidar_depth_map[y1:y2, x1:x2]
 
     mae, rmse, n = compare_depth_maps(crop, lidar_crop)
@@ -26,6 +27,7 @@ def compare_depth_maps_in_box(depth_map, lidar_depth_map, box):
 
     return {
         "nearest": crop[crop > 0].min(),
+        "mono_nearest": mono_crop[mono_crop > 0].min() if (mono_crop > 0).any() else None,
         "lidar_nearest": lidar_crop[lidar_crop > 0].min(),
         "mae": mae,
         "rmse": rmse,
@@ -33,10 +35,11 @@ def compare_depth_maps_in_box(depth_map, lidar_depth_map, box):
     }
 
 def format_box_label(stats):
-    """Single-line label for a detection box: nearest depth vs lidar (or a no-data note)."""
+    """Single-line label for a detection box: nearest depth per source (stereo / mono / lidar), or a no-data note."""
     if stats is None:
         return "no lidar data"
-    return f"{stats['nearest']:.1f} / {stats['lidar_nearest']:.1f}m"
+    mono = f"{stats['mono_nearest']:.1f}" if stats["mono_nearest"] is not None else "n/a"
+    return f"{stats['nearest']:.1f} / {mono} / {stats['lidar_nearest']:.1f}m"
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -73,7 +76,7 @@ if __name__ == "__main__":
 
     texts = []
     for box in boxes:
-        stats = compare_depth_maps_in_box(stereo_depth_map, lidar_depth_map, box)
+        stats = compare_depth_maps_in_box(stereo_depth_map, mono_depth_map, lidar_depth_map, box)
         texts.append(format_box_label(stats))
         print(box, texts[-1])
 
