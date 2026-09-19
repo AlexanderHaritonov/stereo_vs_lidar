@@ -10,7 +10,7 @@ from lidar_fusion import get_lidar_depth_and_maps
 from mono_depth import load_mono_depth_model, get_mono_depth
 from detection import load_model, run_obstacle_detection
 from comparison import compare_depth_maps, compare_depth_maps_in_box, format_box_label
-from visualization import depth_to_color, overlay_points_in_boxes_on_image, draw_boxes_with_labels, draw_metrics_table, draw_legend
+from visualization import depth_to_color, overlay_points_in_boxes_on_image, draw_boxes_with_labels, draw_metrics_table, draw_legend, draw_panel_label
 
 @contextmanager
 def timed(label):
@@ -28,7 +28,7 @@ def _count_frames(root_folder):
                 max_index = max(max_index, int(f[:10]))
     return max_index + 1
 
-def _build_frame(dl, model, mono_model, frame_number, vmax):
+def _build_frame(dl, model, mono_model, frame_number, vmax, totals):
     left, right = dl.load_stereo_pair(frame_number)
     pc_velo = dl.load_point_cloud(frame_number)
     h, w = left.shape[:2]
@@ -50,7 +50,15 @@ def _build_frame(dl, model, mono_model, frame_number, vmax):
 
     mae, rmse, _ = compare_depth_maps(stereo_depth_map, lidar_depth_map)
     mono_mae, mono_rmse, _ = compare_depth_maps(mono_depth_map, lidar_depth_map)
-    camera_panel = draw_metrics_table(camera_panel, mae, rmse, mono_mae, mono_rmse)
+
+    totals["stereo_mae"] += mae
+    totals["stereo_rmse"] += rmse
+    totals["mono_mae"] += mono_mae
+    totals["mono_rmse"] += mono_rmse
+
+    camera_panel = draw_metrics_table(camera_panel, mae, rmse, mono_mae, mono_rmse,
+                                       totals["stereo_mae"], totals["stereo_rmse"],
+                                       totals["mono_mae"], totals["mono_rmse"])
     camera_panel = draw_legend(camera_panel, "mono / stereo / lidar")
 
     stereo_panel = depth_to_color(stereo_depth_map, vmax)
@@ -59,9 +67,9 @@ def _build_frame(dl, model, mono_model, frame_number, vmax):
 
     third_h = h // 3
     side_w = w // 2
-    lidar_panel = cv2.resize(lidar_panel, (side_w, third_h))
-    stereo_panel = cv2.resize(stereo_panel, (side_w, third_h))
-    mono_panel = cv2.resize(mono_panel, (side_w, h - 2 * third_h))
+    lidar_panel = draw_panel_label(cv2.resize(lidar_panel, (side_w, third_h)), "lidar")
+    stereo_panel = draw_panel_label(cv2.resize(stereo_panel, (side_w, third_h)), "stereo")
+    mono_panel = draw_panel_label(cv2.resize(mono_panel, (side_w, h - 2 * third_h)), "mono")
     side_col = cv2.vconcat([lidar_panel, stereo_panel, mono_panel])
     return cv2.hconcat([camera_panel, side_col])
 
@@ -73,11 +81,12 @@ def make_comparison_video(root_folder, output_dir="output", fps=10, vmax=80):
     mono_model = load_mono_depth_model()
     frames_cnt = _count_frames(root_folder)
 
+    totals = {"stereo_mae": 0.0, "stereo_rmse": 0.0, "mono_mae": 0.0, "mono_rmse": 0.0}
     result_video = []
     for idx in range(frames_cnt):
         print(idx + 1, "of", frames_cnt)
         try:
-            result_video.append(_build_frame(dl, model, mono_model, idx, vmax))
+            result_video.append(_build_frame(dl, model, mono_model, idx, vmax, totals))
         except (FileNotFoundError, cv2.error):
             print(f"skipping frame {idx}: missing image or lidar file")
 
