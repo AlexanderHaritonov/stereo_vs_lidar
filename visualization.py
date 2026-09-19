@@ -44,12 +44,36 @@ def overlay_points_in_boxes_on_image(image, pts_2d, depths, boxes, vmax, shrink_
     mask = points_in_boxes_mask(pts_2d, boxes, shrink_factor)
     return overlay_points_on_image(image, pts_2d[mask], depths[mask], vmax)
 
+LABEL_OFFSET_STEP = 14  # px nudge tried once before skipping an overlapping label
+
 def draw_boxes_with_labels(image, boxes, texts, color=(255, 40, 30)):
-    """Rectangle + label above it, for each box."""
+    """Rectangle + label above it, for each box. If a label collides with an
+    already-drawn label, nudge it up by LABEL_OFFSET_STEP once; if it still
+    collides, skip it."""
     out = image.copy()
+    drawn_rects = []
+
+    def text_rect(x, y, text):
+        (tw, th), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_PLAIN, 1.3, 2)
+        return (x, y - th - baseline, x + tw, y + baseline)
+
+    def overlaps(a, b):
+        return a[0] < b[2] and a[2] > b[0] and a[1] < b[3] and a[3] > b[1]
+
     for (x1, y1, x2, y2), text in zip(boxes, texts):
         cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
-        cv2.putText(out, text, (x1, y1 - 4), cv2.FONT_HERSHEY_PLAIN, 1.3, color, 2)
+
+        y = y1 - 4
+        rect = text_rect(x1, y, text)
+        if any(overlaps(rect, r) for r in drawn_rects):
+            y -= LABEL_OFFSET_STEP
+            rect = text_rect(x1, y, text)
+            if any(overlaps(rect, r) for r in drawn_rects):
+                continue  # still colliding -- skip this label
+
+        cv2.putText(out, text, (x1, y), cv2.FONT_HERSHEY_PLAIN, 1.3, color, 2)
+        drawn_rects.append(rect)
+
     return out
 
 def draw_legend(image, text, color=(255, 40, 30)):

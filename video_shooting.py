@@ -56,6 +56,10 @@ def _build_frame(dl, model, mono_model, frame_number, vmax, totals):
     totals["mono_mae"] += mono_mae
     totals["mono_rmse"] += mono_rmse
 
+    print(f"{'':<10}{'MAE':>8}{'RMSE':>9}{'MAE sum':>12}{'RMSE sum':>12}")
+    print(f"{'stereo':<10}{mae:>8.2f}{rmse:>9.2f}{totals['stereo_mae']:>12.1f}{totals['stereo_rmse']:>12.1f}")
+    print(f"{'mono':<10}{mono_mae:>8.2f}{mono_rmse:>9.2f}{totals['mono_mae']:>12.1f}{totals['mono_rmse']:>12.1f}")
+
     camera_panel = draw_metrics_table(camera_panel, mae, rmse, mono_mae, mono_rmse,
                                        totals["stereo_mae"], totals["stereo_rmse"],
                                        totals["mono_mae"], totals["mono_rmse"])
@@ -104,5 +108,5 @@ def make_comparison_video(root_folder, output_dir="output", fps=10, vmax=80):
     return output_path
 
 if __name__ == "__main__":
-    output_path = make_comparison_video("../kitty_data/drive1/2011_09_26_drive_0001_sync")
+    output_path = make_comparison_video("../kitty_data/drive14/2011_09_26_drive_0014_sync")
     print(f"wrote {output_path}")
